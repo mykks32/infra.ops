@@ -14,7 +14,6 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: localhost/frontend
-        imagePullPolicy: Never
+        image: mykks32/frontend:latest
         ports:
         - containerPort: 80

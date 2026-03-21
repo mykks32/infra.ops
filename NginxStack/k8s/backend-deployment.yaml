@@ -14,7 +14,6 @@ spec:
     spec:
       containers:
       - name: backend
-        image: localhost/backend
-        imagePullPolicy: Never
+        image: mykks32/backend:latest
         ports:
         - containerPort: 5000
