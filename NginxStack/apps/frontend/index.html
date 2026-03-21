@@ -1,0 +1,13 @@
+<h1>Frontend via Nginx</h1>
+<button onclick="loadData()">Call API</button>
+
+<div id="output"></div>
+
+<script>
+function loadData() {
+  fetch('http://localhost:5000/api')
+    .then(r => r.json())
+    .then(d => document.getElementById('output').innerText = d.message)
+    .catch(e => document.getElementById('output').innerText = 'Error');
+}
+</script>
