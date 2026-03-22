@@ -3,8 +3,10 @@ kind: Ingress
 metadata:
   name: myapp-ingress
 spec:
+  ingressClassName: nginx
   rules:
-  - http:
+  - http: nginx-stack.local
+      # frontend -> "/"
       paths:
       - path: /
         pathType: Prefix
@@ -13,3 +15,11 @@ spec:
             name: frontend
             port:
               number: 80
+      # Backend -> "/api"
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: backend
+            port:
+              number: 5000
