@@ -5,8 +5,8 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - http: nginx-stack.local
-      # frontend -> "/"
+  - host: nginx-stack.local
+    http:
       paths:
       - path: /
         pathType: Prefix
@@ -15,7 +15,6 @@ spec:
             name: frontend
             port:
               number: 80
-      # Backend -> "/api"
       - path: /api
         pathType: Prefix
         backend:
