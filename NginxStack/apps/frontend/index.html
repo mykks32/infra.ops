@@ -5,7 +5,7 @@
 
 <script>
 function loadData() {
-  fetch('http://localhost:5000/api')
+  fetch('/api')
     .then(r => r.json())
     .then(d => document.getElementById('output').innerText = d.message)
     .catch(e => document.getElementById('output').innerText = 'Error');
