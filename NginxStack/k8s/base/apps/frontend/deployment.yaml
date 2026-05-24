@@ -1,0 +1,76 @@
+# Kubernetes API version for Deployments
+apiVersion: apps/v1
+
+# Resource type
+kind: Deployment
+
+# Deployment metadata
+metadata:
+  # Deployment name
+  name: frontend-deployment
+  # Namespace where Deployment is created
+  namespace: nginx-stack
+  # Labels for organizing and selecting resources
+  labels:
+    app: nginx-stack-frontend
+
+# Deployment specification
+spec:
+  # Number of pod replicas (overridden per overlay)
+  replicas: 1
+
+  # Pod selector — must match template labels
+  selector:
+    matchLabels:
+      app: nginx-stack-frontend
+
+  # Rolling update strategy — zero downtime deploys
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  # Pod template
+  template:
+    metadata:
+      labels:
+        app: nginx-stack-frontend
+
+    spec:
+      # Graceful shutdown window
+      terminationGracePeriodSeconds: 30
+
+      containers:
+        - name: frontend
+          image: mykks32/frontend:latest
+          ports:
+            - containerPort: 80
+              name: http
+
+          # Resource requests and limits
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+
+          # Ready to serve traffic?
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+
+          # Still alive?
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            failureThreshold: 3

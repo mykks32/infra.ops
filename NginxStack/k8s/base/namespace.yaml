@@ -1,0 +1,10 @@
+# Kubernetes API version
+apiVersion: v1
+
+# Resource Type
+kind: Namespace
+
+# Namespace Metadata
+metadata:
+  # Namespace Name
+  name: nginx-stack

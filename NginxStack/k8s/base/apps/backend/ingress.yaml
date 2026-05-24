@@ -1,0 +1,38 @@
+# Kubernetes API version for Ingress
+apiVersion: networking.k8s.io/v1
+
+# Resource type
+kind: Ingress
+
+# Ingress metadata
+metadata:
+  # Ingress name
+  name: backend-ingress
+  # Namespace
+  namespace: nginx-stack
+  # Labels for organizing and selecting resources
+  labels:
+    app: nginx-stack-backend
+
+  # NGINX-specific settings
+  annotations: {}
+
+# Ingress specification
+spec:
+  # Ingress controller type
+  ingressClassName: nginx
+
+  # Routing rules
+  rules:
+    - host: nginx-stack.local  # Domain name
+
+      http:
+        paths:
+          - path: /api         # Root path
+            pathType: Prefix            # Match all subpaths
+
+            backend:
+              service:
+                name: backend-service  # Target service
+                port:
+                  number: 80           # Service port

@@ -1,0 +1,81 @@
+# Kubernetes API version for Deployments
+apiVersion: apps/v1
+
+# Resource type
+kind: Deployment
+
+# Deployment metadata
+metadata:
+  # Deployment name
+  name: backend-deployment
+  # Namespace where Deployment is created
+  namespace: nginx-stack
+  # Labels for organizing and selecting resources
+  labels:
+    app: nginx-stack-backend
+
+# Deployment specification
+spec:
+  # Number of pod replicas
+  replicas: 2
+
+  # Pod selector — must match template labels
+  selector:
+    matchLabels:
+      app: nginx-stack-backend
+
+  # Rolling update strategy — zero downtime deploys
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  # Pod template
+  template:
+    metadata:
+      labels:
+        app: nginx-stack-backend
+
+    spec:
+      # Graceful shutdown window
+      terminationGracePeriodSeconds: 30
+
+      containers:
+        - name: backend
+          image: mykks32/backend:latest
+          ports:
+            - containerPort: 5000
+              name: http
+
+          # Environment variables from ConfigMap & Secret
+          envFrom:
+            - secretRef:
+                name: backend-secret
+
+          # Resource requests and limits
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+
+          # Ready to serve traffic?
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+
+          # Still alive?
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            failureThreshold: 3

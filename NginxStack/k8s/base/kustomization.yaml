@@ -1,0 +1,35 @@
+# Kustomize Resource List
+resources:
+  - namespace.yaml
+
+  # ------------------
+  # Backend Resource
+  # ------------------
+  # ConfigMap for app configuration
+  - apps/backend/configmap.yaml
+  # Deployment for running application pods
+  - apps/backend/deployment.yaml
+  # Service for internal networking
+  - apps/backend/service.yaml
+  # Ingress for external access
+  - apps/backend/ingress.yaml
+  # Horizontal Pod Autoscaler for scaling
+  - apps/backend/hpa.yaml
+  # Pod Disruption Budget for availability safety
+  - apps/backend/pdb.yaml
+
+  # ------------------
+  # Frontend Resource
+  # ------------------
+  # ConfigMap for app configuration
+  - apps/frontend/configmap.yaml
+  # Deployment for running application pods
+  - apps/frontend/deployment.yaml
+  # Service for internal networking
+  - apps/frontend/service.yaml
+  # Ingress for external access
+  - apps/frontend/ingress.yaml
+  # Horizontal Pod Autoscaler for scaling
+  - apps/frontend/hpa.yaml
+  # Pod Disruption Budget for availability safety
+  - apps/frontend/pdb.yaml

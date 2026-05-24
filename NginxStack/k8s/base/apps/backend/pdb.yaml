@@ -1,0 +1,26 @@
+# Kubernetes API version for PodDisruptionBudget
+apiVersion: policy/v1
+
+# Resource type
+kind: PodDisruptionBudget
+
+# PDB metadata
+metadata:
+  # PDB name
+  name: backend-pdb
+  # Namespace where PDB is created
+  namespace: nginx-stack
+  # Labels for organizing and selecting resources
+  labels:
+    app: nginx-stack-backend
+
+# PDB specification
+spec:
+  # Minimum pods that must remain available during voluntary disruptions
+  # (node drains, rolling updates, cluster upgrades)
+  minAvailable: 1
+
+  # Target pods with this label
+  selector:
+    matchLabels:
+      app: nginx-stack-backend

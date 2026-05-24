@@ -1,0 +1,19 @@
+# Kubernetes API version
+apiVersion: v1
+
+# Resource type
+kind: ConfigMap
+
+# ConfigMap metadata
+metadata:
+  # ConfigMap name
+  name: backend-config
+  # Namespace where ConfigMap is created
+  namespace: nginx-stack
+  # Labels for organizing and selecting resources
+  labels:
+    app: nginx-stack-backend-config
+
+# Key-value configuration data
+# Add environment-specific values in overlays via configMapGenerator patches
+data: {}

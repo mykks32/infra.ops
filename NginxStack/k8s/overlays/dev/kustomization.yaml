@@ -1,0 +1,17 @@
+# Target namespace for all resources
+namespace: nginx-stack
+
+# Base resources to include
+resources:
+  - ../../base
+
+# Secret generation from env file
+secretGenerator:
+  - name: backend-secret
+    envs:
+      - backend.env
+
+# Secret generator options
+generatorOptions:
+  # Prevents adding random hash to secret name
+  disableNameSuffixHash: true

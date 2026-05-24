@@ -1,0 +1,28 @@
+# Kubernetes API version
+apiVersion: v1
+
+# Resource type
+kind: Service
+
+# Service metadata
+metadata:
+  # Service name
+  name: frontend-service
+  # Namespace where Service is created
+  namespace: nginx-stack
+  # Labels for organizing and selecting resources
+  labels:
+    app: nginx-stack-frontend
+
+# Service specification
+spec:
+  # ClusterIP — internal only, Ingress handles external traffic
+  type: ClusterIP
+
+  # Route traffic to pods with this label
+  selector:
+    app: nginx-stack-frontend
+
+  ports:
+    - port: 80          # Exposed service port
+      targetPort: 80    # Container port
