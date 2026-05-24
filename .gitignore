@@ -1,2 +1,16 @@
-# Intellij
+# IDE
 .idea
+
+# Node modules
+node_modules
+**/node_modules
+
+# Git
+.git
+
+# OS files
+.DS_Store
+
+# Environment files (optional)
+.env
+**/*.env

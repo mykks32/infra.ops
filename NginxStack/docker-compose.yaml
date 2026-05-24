@@ -1,0 +1,61 @@
+# nginx-stack
+# Simple production-ready setup: nginx → frontend + backend
+
+services:
+
+  backend:
+    # API service (Express / NestJS)
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    env_file:
+      - ./docker/.env
+    networks:
+      - nginx-stack-network
+    restart: unless-stopped
+
+    # Basic health check
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:5000/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+
+  frontend:
+    # Frontend service (React / Vite / Next build)
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    networks:
+      - nginx-stack-network
+    restart: unless-stopped
+
+    # Basic health check
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3000"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+
+  nginx:
+    # Reverse proxy (only public entrypoint)
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      backend:
+        condition: service_started
+      frontend:
+        condition: service_started
+    networks:
+      - nginx-stack-network
+    restart: unless-stopped
+
+
+networks:
+  nginx-stack-network:
+    driver: bridge
