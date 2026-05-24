@@ -7,8 +7,8 @@ docker build -t frontend -f ./docker/frontend.Dockerfile .
 
 # Tag for Docker Hub
 echo "Tagging docker images..."
-docker tag localhost/backend mykks32/backend:latest
-docker tag localhost/frontend mykks32/frontend:latest
+docker tag backend:latest mykks32/backend:latest
+docker tag frontend:latest mykks32/frontend:latest
 
 # Push to Docker Hub
 echo "Pushing images to docker hub..."
