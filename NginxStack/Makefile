@@ -7,6 +7,19 @@ AWS_REGION := us-east-1
 # Base ECR registry URL
 ECR_REGISTRY := $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
 
+# Base EKS cluster
+AWS_EKS_CLUSTER := infra-ops
+
+# Kubernetes path (kustomize overlay)
+K8S_DEV := k8s/overlays/dev
+
+# Kubernetes namespace
+NAMESPACE := nginx-stack
+
+# KUBERNETES DEPLOYMENT NAMES
+K8S_BACKEND_DEPLOYMENT := backend-deployment
+K8S_FRONTEND_DEPLOYMENT := frontend-deployment
+
 # Default Docker tag
 TAG := latest
 
@@ -115,7 +128,7 @@ verify-repos:
 
 # Build backend image
 build-backend:
-	docker build -t $(APP_BACKEND):$(TAG) -f $(DOCKERFILE_BACKEND) $(CONTEXT)
+	docker buildx build --platform linux/amd64 -t $(APP_BACKEND):$(TAG) -f $(DOCKERFILE_BACKEND) $(CONTEXT)
 
 # Tag backend image
 tag-backend:
@@ -174,7 +187,7 @@ restart-backend: stop-backend remove-backend run-backend
 
 # Build frontend image
 build-frontend:
-	docker build -t $(APP_FRONTEND):$(TAG) -f $(DOCKERFILE_FRONTEND) $(CONTEXT)
+	docker buildx build --platform linux/amd64 -t $(APP_FRONTEND):$(TAG) -f $(DOCKERFILE_FRONTEND) $(CONTEXT)
 
 # Tag frontend image
 tag-frontend:
@@ -245,3 +258,78 @@ list-frontend-images:
 # Remove unused images
 clean-images:
 	docker image prune -a -f
+
+
+# -------------------------
+# AWS EKS
+# -------------------------
+
+# Create AWS eks cluster
+create-eks-cluster:
+	eksctl create cluster --name=$(AWS_EKS_CLUSTER) --enable-auto-mode
+
+# Add EKS cluster
+add-eks-cluster:
+	aws eks update-kubeconfig --region $(AWS_REGION) --name $(AWS_EKS_CLUSTER)
+
+# Get Kubernetes Service
+get-kubectl-service:
+	kubectl get svc
+
+# Install Ingress Nginx Controller using Helm
+install-ingress-controller:
+	helm upgrade --install ingress-nginx ingress-nginx \
+      --repo https://kubernetes.github.io/ingress-nginx \
+      --namespace ingress-nginx \
+      --set controller.service.annotations."service\.beta\.kubernetes\.io/aws-load-balancer-scheme"=internet-facing
+
+# Get Nginx Ingress
+get-ingress-nginx:
+	kubectl get ingress -n nginx-stack
+
+# KUBERNETES (KUSTOMIZE DEV)
+k8s-dev:
+	@echo "Deploying Kubernetes dev environment..."
+	kubectl apply -k $(K8S_DEV)
+
+k8s-dev-delete:
+	@echo "Deleting Kubernetes dev environment..."
+	kubectl delete -k $(K8S_DEV) --ignore-not-found
+
+# KUBERNETES DEBUG COMMANDS
+k8s-pods:
+	kubectl get pods -n $(NAMESPACE)
+
+k8s-svc:
+	kubectl get svc -n $(NAMESPACE)
+
+k8s-all:
+	kubectl get all -n $(NAMESPACE)
+
+# KUBERNETES RESTART
+k8s-restart-backend:
+	kubectl rollout restart deployment $(K8S_BACKEND_DEPLOYMENT) -n $(NAMESPACE)
+
+k8s-restart-frontend:
+	kubectl rollout restart deployment $(K8S_FRONTEND_DEPLOYMENT) -n $(NAMESPACE)
+
+# STATUS CHECK
+k8s-status-backend:
+	kubectl rollout status deployment $(K8S_BACKEND_DEPLOYMENT) -n $(NAMESPACE)
+
+k8s-status-frontend:
+	kubectl rollout status deployment $(K8S_FRONTEND_DEPLOYMENT) -n $(NAMESPACE)
+
+# LOGS
+k8s-logs-backend:
+	kubectl logs -f deployment/$(K8S_BACKEND_DEPLOYMENT) -n $(NAMESPACE)
+
+k8s-logs-frontend:
+	kubectl logs -f deployment/$(K8S_FRONTEND_DEPLOYMENT) -n $(NAMESPACE)
+
+# DESCRIBE
+k8s-describe-backend:
+	kubectl describe deployment $(K8S_BACKEND_DEPLOYMENT) -n $(NAMESPACE)
+
+k8s-describe-frontend:
+	kubectl describe deployment $(K8S_FRONTEND_DEPLOYMENT) -n $(NAMESPACE)

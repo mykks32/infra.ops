@@ -17,7 +17,7 @@ metadata:
 # Deployment specification
 spec:
   # Number of pod replicas (overridden per overlay)
-  replicas: 1
+  replicas: 2
 
   # Pod selector — must match template labels
   selector:
@@ -43,7 +43,7 @@ spec:
 
       containers:
         - name: frontend
-          image: mykks32/frontend:latest
+          image: 155777995214.dkr.ecr.us-east-1.amazonaws.com/nginx-stack/frontend:latest
           ports:
             - containerPort: 80
               name: http

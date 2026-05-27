@@ -43,7 +43,7 @@ spec:
 
       containers:
         - name: backend
-          image: mykks32/backend:latest
+          image: 155777995214.dkr.ecr.us-east-1.amazonaws.com/nginx-stack/backend:latest
           ports:
             - containerPort: 5000
               name: http

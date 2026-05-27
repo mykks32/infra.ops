@@ -18,7 +18,7 @@ metadata:
 spec:
   # Minimum pods that must remain available during voluntary disruptions
   # (node drains, rolling updates, cluster upgrades)
-  minAvailable: 2
+  minAvailable: 1
 
   # Target pods with this label
   selector:

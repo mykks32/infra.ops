@@ -24,9 +24,9 @@ spec:
 
   # Routing rules
   rules:
-    - host: nginx-stack.local  # Domain name
+#    - host: nginx-stack.global  # Domain name
 
-      http:
+     - http:
         paths:
           - path: /api         # Root path
             pathType: Prefix            # Match all subpaths
