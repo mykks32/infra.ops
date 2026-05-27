@@ -1,177 +1,247 @@
-# PROJECT CONFIGURATION
+# AWS account ID used for ECR authentication
+AWS_ACCOUNT_ID := 155777995214
 
-# App names
-APP_BACKEND := backend
-APP_FRONTEND := frontend
+# AWS region where ECR repositories exist
+AWS_REGION := us-east-1
 
-# DockerHub repository (change username here)
-DOCKER_USER := mykks32
+# Base ECR registry URL
+ECR_REGISTRY := $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
 
-# Image names
-IMAGE_BACKEND := $(DOCKER_USER)/backend
-IMAGE_FRONTEND := $(DOCKER_USER)/frontend
-
-# Default tag (override: make release TAG=v1.0.0)
+# Default Docker tag
 TAG := latest
 
-# Dockerfiles
-DOCKERFILE_BACKEND := docker/backend.Dockerfile
-DOCKERFILE_FRONTEND := docker/frontend.Dockerfile
-
-# Build context (project root)
+# Docker build context
 CONTEXT := .
 
-# Kubernetes path (kustomize overlay)
-K8S_DEV := k8s/overlays/dev
+# -------------------------
+# BACKEND CONFIG
+# -------------------------
 
-# Kubernetes namespace
-NAMESPACE := nginx-stack
+# Backend application name (local image)
+APP_BACKEND := backend
 
+# Backend ECR repository name
+ECR_REPO_BACKEND := nginx-stack/backend
+
+# Full backend image path in ECR
+IMAGE_BACKEND := $(ECR_REGISTRY)/$(ECR_REPO_BACKEND)
+
+# Backend Dockerfile path
+DOCKERFILE_BACKEND := docker/backend.Dockerfile
+
+# Backend container name
+CONTAINER_BACKEND := backend
+
+# -------------------------
+# FRONTEND CONFIG
+# -------------------------
+
+# Frontend application name (local image)
+APP_FRONTEND := frontend
+
+# Frontend ECR repository name
+ECR_REPO_FRONTEND := nginx-stack/frontend
+
+# Full frontend image path in ECR
+IMAGE_FRONTEND := $(ECR_REGISTRY)/$(ECR_REPO_FRONTEND)
+
+# Frontend Dockerfile path
+DOCKERFILE_FRONTEND := docker/frontend.Dockerfile
+
+# Frontend container name
+CONTAINER_FRONTEND := frontend
+
+# -------------------------
 # PHONY TARGETS
-.PHONY: help \
-	build-backend build-frontend build-all \
-	tag-backend tag-frontend \
-	push-backend push-frontend \
-	release-backend release-frontend release-all \
-	docker-up docker-down docker-logs \
-	k8s-dev k8s-dev-delete \
-	k8s-pods k8s-svc k8s-all \
-	k8s-restart-backend k8s-restart-frontend \
-	k8s-status-backend k8s-status-frontend \
-	k8s-logs-backend k8s-logs-frontend \
-	k8s-describe-backend k8s-describe-frontend
+# -------------------------
 
-# HELP COMMAND
+# Prevent conflicts with files
+.PHONY: help ecr-login verify-repos \
+        build-backend tag-backend push-backend pull-backend inspect-backend describe-backend release-backend \
+        run-backend stop-backend remove-backend restart-backend exec-backend shell-backend debug-backend \
+        build-frontend tag-frontend push-frontend pull-frontend inspect-frontend describe-frontend release-frontend \
+        run-frontend stop-frontend remove-frontend restart-frontend exec-frontend shell-frontend debug-frontend \
+        list-images list-backend-images list-frontend-images clean-images
+
+# -------------------------
+# HELP
+# -------------------------
+
+# Show available commands
 help:
-	@echo "--------------------------------"
-	@echo "Docker Commands"
-	@echo "--------------------------------"
-	@echo "make build-backend           Build backend image"
-	@echo "make build-frontend          Build frontend image"
-	@echo "make build-all               Build both images"
-	@echo "make release-backend         Build + tag + push backend"
-	@echo "make release-frontend        Build + tag + push frontend"
-	@echo "make release-all             Build + tag + push both"
+	@echo "Backend commands:"
+	@echo "  make build-backend"
+	@echo "  make release-backend"
+	@echo "  make run-backend"
+	@echo "  make exec-backend"
+	@echo "  make shell-backend"
+	@echo "  make debug-backend"
 	@echo ""
-	@echo "--------------------------------"
-	@echo "Docker Compose Commands"
-	@echo "--------------------------------"
-	@echo "make docker-up               Start all services locally"
-	@echo "make docker-down             Stop all services"
-	@echo "make docker-logs             Tail logs from all services"
-	@echo ""
-	@echo "--------------------------------"
-	@echo "Kubernetes Commands (DEV)"
-	@echo "--------------------------------"
-	@echo "make k8s-dev                 Deploy dev environment"
-	@echo "make k8s-dev-delete          Tear down dev environment"
-	@echo "make k8s-pods                List pods"
-	@echo "make k8s-svc                 List services"
-	@echo "make k8s-all                 Full resource overview"
-	@echo "make k8s-restart-backend     Rolling restart backend"
-	@echo "make k8s-restart-frontend    Rolling restart frontend"
-	@echo "make k8s-status-backend      Watch backend rollout status"
-	@echo "make k8s-status-frontend     Watch frontend rollout status"
-	@echo "make k8s-logs-backend        Tail backend pod logs"
-	@echo "make k8s-logs-frontend       Tail frontend pod logs"
-	@echo "make k8s-describe-backend    Describe backend deployment"
-	@echo "make k8s-describe-frontend   Describe frontend deployment"
+	@echo "Frontend commands:"
+	@echo "  make build-frontend"
+	@echo "  make release-frontend"
+	@echo "  make run-frontend"
+	@echo "  make exec-frontend"
+	@echo "  make shell-frontend"
+	@echo "  make debug-frontend"
 
-# DOCKER - BUILD
+# -------------------------
+# AWS LOGIN
+# -------------------------
+
+# Login Docker to AWS ECR
+ecr-login:
+	@echo "Logging into AWS ECR..."
+	aws ecr get-login-password --region $(AWS_REGION) | \
+	docker login --username AWS --password-stdin $(ECR_REGISTRY)
+
+# -------------------------
+# VERIFY REPOSITORIES
+# -------------------------
+
+# Check if ECR repos exist
+verify-repos:
+	@echo "Checking backend repo..."
+	aws ecr describe-repositories --repository-names $(ECR_REPO_BACKEND) --region $(AWS_REGION) || \
+	(echo "Backend repo missing" && exit 1)
+
+	@echo "Checking frontend repo..."
+	aws ecr describe-repositories --repository-names $(ECR_REPO_FRONTEND) --region $(AWS_REGION) || \
+	(echo "Frontend repo missing" && exit 1)
+
+# -------------------------
+# BACKEND COMMANDS
+# -------------------------
+
+# Build backend image
 build-backend:
-	@echo "Building backend image..."
 	docker build -t $(APP_BACKEND):$(TAG) -f $(DOCKERFILE_BACKEND) $(CONTEXT)
 
-build-frontend:
-	@echo "Building frontend image..."
-	docker build -t $(APP_FRONTEND):$(TAG) -f $(DOCKERFILE_FRONTEND) $(CONTEXT)
-
-build-all: build-backend build-frontend
-	@echo "Both images built."
-
-# DOCKER - TAG
+# Tag backend image
 tag-backend:
-	@echo "Tagging backend image..."
 	docker tag $(APP_BACKEND):$(TAG) $(IMAGE_BACKEND):$(TAG)
 
-tag-frontend:
-	@echo "Tagging frontend image..."
-	docker tag $(APP_FRONTEND):$(TAG) $(IMAGE_FRONTEND):$(TAG)
-
-# DOCKER - PUSH
+# Push backend image
 push-backend:
-	@echo "Pushing backend image..."
 	docker push $(IMAGE_BACKEND):$(TAG)
 
+# Pull backend image
+pull-backend:
+	docker pull $(IMAGE_BACKEND):$(TAG)
+
+# Inspect backend image
+inspect-backend:
+	docker image inspect $(IMAGE_BACKEND):$(TAG)
+
+# Describe backend image in ECR
+describe-backend:
+	aws ecr describe-images \
+		--repository-name $(ECR_REPO_BACKEND) \
+		--region $(AWS_REGION) \
+		--query "imageDetails[?imageTags && contains(imageTags, '$(TAG)')]" \
+		--output table
+
+# Full backend deployment
+release-backend: ecr-login build-backend tag-backend push-backend
+	@echo "Backend deployed → $(IMAGE_BACKEND):$(TAG)"
+
+# Run backend container
+run-backend:
+	docker run -d -p 9000:5000 --name $(CONTAINER_BACKEND) $(APP_BACKEND):$(TAG)
+
+# Exec into running backend container
+exec-backend:
+	docker exec -it $(CONTAINER_BACKEND) /bin/sh
+
+# Debug mode (enter IMAGE directly without keeping container)
+debug-backend:
+	docker run -it --rm $(APP_BACKEND):$(TAG) /bin/sh
+
+# Stop backend container
+stop-backend:
+	docker stop $(CONTAINER_BACKEND) || true
+
+# Remove backend container
+remove-backend:
+	docker rm $(CONTAINER_BACKEND) || true
+
+# Restart backend container
+restart-backend: stop-backend remove-backend run-backend
+
+# -------------------------
+# FRONTEND COMMANDS
+# -------------------------
+
+# Build frontend image
+build-frontend:
+	docker build -t $(APP_FRONTEND):$(TAG) -f $(DOCKERFILE_FRONTEND) $(CONTEXT)
+
+# Tag frontend image
+tag-frontend:
+	docker tag $(APP_FRONTEND):$(TAG) $(IMAGE_FRONTEND):$(TAG)
+
+# Push frontend image
 push-frontend:
-	@echo "Pushing frontend image..."
 	docker push $(IMAGE_FRONTEND):$(TAG)
 
-# DOCKER - FULL PIPELINE
-release-backend: build-backend tag-backend push-backend
-	@echo "Backend release done → $(IMAGE_BACKEND):$(TAG)"
+# Pull frontend image
+pull-frontend:
+	docker pull $(IMAGE_FRONTEND):$(TAG)
 
-release-frontend: build-frontend tag-frontend push-frontend
-	@echo "Frontend release done → $(IMAGE_FRONTEND):$(TAG)"
+# Inspect frontend image
+inspect-frontend:
+	docker image inspect $(IMAGE_FRONTEND):$(TAG)
 
-release-all: release-backend release-frontend
-	@echo "Full release done → $(IMAGE_BACKEND):$(TAG) + $(IMAGE_FRONTEND):$(TAG)"
+# Describe frontend image in ECR
+describe-frontend:
+	aws ecr describe-images \
+		--repository-name $(ECR_REPO_FRONTEND) \
+		--region $(AWS_REGION) \
+		--query "imageDetails[?imageTags && contains(imageTags, '$(TAG)')]" \
+		--output table
 
-# DOCKER COMPOSE
-docker-up:
-	@echo "Starting services with Docker Compose..."
-	docker compose up --build -d
+# Full frontend deployment
+release-frontend: ecr-login build-frontend tag-frontend push-frontend
+	@echo "Frontend deployed → $(IMAGE_FRONTEND):$(TAG)"
 
-docker-down:
-	@echo "Stopping services..."
-	docker compose down
+# Run frontend container
+run-frontend:
+	docker run -d -p 3000:80 --name $(CONTAINER_FRONTEND) $(APP_FRONTEND):$(TAG)
 
-docker-logs:
-	docker compose logs -f
+# Exec into running frontend container
+exec-frontend:
+	docker exec -it $(CONTAINER_FRONTEND) /bin/sh
 
-# KUBERNETES (KUSTOMIZE DEV)
-k8s-dev:
-	@echo "Deploying Kubernetes dev environment..."
-	kubectl apply -k $(K8S_DEV)
+# Debug mode (enter image directly)
+debug-frontend:
+	docker run -it --rm $(APP_FRONTEND):$(TAG) /bin/sh
 
-k8s-dev-delete:
-	@echo "Deleting Kubernetes dev environment..."
-	kubectl delete -k $(K8S_DEV) --ignore-not-found
+# Stop frontend container
+stop-frontend:
+	docker stop $(CONTAINER_FRONTEND) || true
 
-# KUBERNETES DEBUG COMMANDS
-k8s-pods:
-	kubectl get pods -n $(NAMESPACE)
+# Remove frontend container
+remove-frontend:
+	docker rm $(CONTAINER_FRONTEND) || true
 
-k8s-svc:
-	kubectl get svc -n $(NAMESPACE)
+# Restart frontend container
+restart-frontend: stop-frontend remove-frontend run-frontend
 
-k8s-all:
-	kubectl get all -n $(NAMESPACE)
+# -------------------------
+# IMAGE LISTING
+# -------------------------
 
-# KUBERNETES RESTART
-k8s-restart-backend:
-	kubectl rollout restart deployment $(APP_BACKEND) -n $(NAMESPACE)
+# Show all local images
+list-images:
+	docker images
 
-k8s-restart-frontend:
-	kubectl rollout restart deployment $(APP_FRONTEND) -n $(NAMESPACE)
+# Show backend images only
+list-backend-images:
+	docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.ID}}\t{{.Size}}" | grep $(APP_BACKEND)
+# Show frontend images only
+list-frontend-images:
+	docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.ID}}\t{{.Size}}" | grep $(APP_FRONTEND)
 
-# STATUS CHECK
-k8s-status-backend:
-	kubectl rollout status deployment $(APP_BACKEND) -n $(NAMESPACE)
-
-k8s-status-frontend:
-	kubectl rollout status deployment $(APP_FRONTEND) -n $(NAMESPACE)
-
-# LOGS
-k8s-logs-backend:
-	kubectl logs -f deployment/$(APP_BACKEND) -n $(NAMESPACE)
-
-k8s-logs-frontend:
-	kubectl logs -f deployment/$(APP_FRONTEND) -n $(NAMESPACE)
-
-# DESCRIBE
-k8s-describe-backend:
-	kubectl describe deployment $(APP_BACKEND) -n $(NAMESPACE)
-
-k8s-describe-frontend:
-	kubectl describe deployment $(APP_FRONTEND) -n $(NAMESPACE)
+# Remove unused images
+clean-images:
+	docker image prune -a -f
