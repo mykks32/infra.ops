@@ -9,4 +9,10 @@ export class BookSerializer {
 
   @Expose()
   author: string
+
+  @Expose()
+  createdAt: Date
+
+  @Expose()
+  updatedAt: Date
 }

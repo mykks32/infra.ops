@@ -1,9 +1,10 @@
-import { Module } from '@nestjs/common'
-import { ClientsModule, Transport } from '@nestjs/microservices'
-import { AppConfigService } from '../config/config.service'
-import { AppConfigModule } from '../config/config.module'
-import { KAFKA_CLIENT } from './kafka.constant'
-import { KafkaService } from './kafka.service'
+import { Module } from '@nestjs/common';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+
+import { AppConfigService } from '../config/config.service';
+import { KafkaService } from './kafka.service';
+import { AppConfigModule } from '../config/config.module';
+import { KAFKA_CLIENT } from './kafka.constant';
 
 @Module({
   imports: [

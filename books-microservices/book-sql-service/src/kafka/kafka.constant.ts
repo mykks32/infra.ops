@@ -9,3 +9,5 @@ export const KafkaTopic: Record<KafkaTopicName, string> = Topics.reduce(
   },
   {} as Record<KafkaTopicName, string>,
 )
+
+export const KAFKA_CLIENT = 'KAFKA_CLIENT' as const
