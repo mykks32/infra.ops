@@ -1,0 +1,170 @@
+name: book-infra
+
+services:
+  # PostgreSQL Database
+  postgres_book:
+    image: postgres:17
+    container_name: postgres_book
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: book_pg
+    volumes:
+      - pg_book_data:/var/lib/postgresql/data
+    networks:
+      - book-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # PgAdmin
+  pgadmin_book:
+    image: dpage/pgadmin4
+    container_name: pgadmin_book
+    restart: always
+    ports:
+      - "5051:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    depends_on:
+      postgres_book:
+        condition: service_healthy
+    networks:
+      - book-network
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+  # MongoDB
+  #  mongo_book:
+  #    image: mongo:7
+  #    container_name: mongo_book
+  #    restart: always
+  #    environment:
+  #      MONGO_INITDB_ROOT_USERNAME: mongo
+  #      MONGO_INITDB_ROOT_PASSWORD: mongo
+  #      MONGO_INITDB_DATABASE: book_mongo
+  #    volumes:
+  #      - mongo_book_data:/data/db
+  #    networks:
+  #      - book-network
+  #    healthcheck:
+  #      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+  #      interval: 5s
+  #      timeout: 5s
+  #      retries: 5
+  #
+  #  # Mongo Atlas (via mongo-express)
+  #  mongo_express_book:
+  #    image: mongo-express:latest
+  #    container_name: mongo_express_book
+  #    restart: always
+  #    ports:
+  #      - "8081:8081"
+  #    environment:
+  #      ME_CONFIG_MONGODB_ADMINUSERNAME: mongo
+  #      ME_CONFIG_MONGODB_ADMINPASSWORD: mongo
+  #      ME_CONFIG_MONGODB_SERVER: mongo_book
+  #      ME_CONFIG_BASICAUTH_USERNAME: admin
+  #      ME_CONFIG_BASICAUTH_PASSWORD: admin123
+  #    depends_on:
+  #      - mongo_book
+  #    networks:
+  #      - book-network
+
+  # Redis Cache
+  #  redis_book:
+  #    image: redis:7
+  #    container_name: redis_book
+  #    restart: always
+  #    networks:
+  #      - book-network
+  #    volumes:
+  #      - redis_book_data:/data
+  #    command: ["redis-server", "--requirepass", "redis", "--appendonly", "yes"]
+  #    healthcheck:
+  #      test: ["CMD", "redis-cli", "-a", "redis", "ping"]
+  #      interval: 5s
+  #      timeout: 5s
+  #      retries: 5
+  #
+  #  # Redis Insight UI
+  #  redis_insight_book:
+  #    image: redis/redisinsight:latest
+  #    container_name: redis_insight_book
+  #    restart: always
+  #    ports:
+  #      - "5540:5540"
+  #    volumes:
+  #      - redis_insight_data:/data
+  #    depends_on:
+  #      - redis_book
+  #    networks:
+  #      - book-network
+
+  # Kafka Broker (BOOK)
+  kafka_book:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka_book
+    hostname: kafka_book
+    restart: always
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka_book:9093"
+      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,EXTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka_book:9092,EXTERNAL://localhost:29092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+    volumes:
+      - kafka_book_data:/var/lib/kafka/data
+    networks:
+      - book-network
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+
+  # Kafka UI (BOOK)
+  kafka_ui_book:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka_ui_book
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: book-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka_book:9092
+    depends_on:
+      kafka_book:
+        condition: service_healthy
+    networks:
+      - book-network
+
+# Networks
+networks:
+  book-network:
+
+# Volumes
+volumes:
+  pg_book_data:
+  pgadmin_data:
+  #  redis_book_data:
+  #  redis_insight_data:
+  kafka_book_data:

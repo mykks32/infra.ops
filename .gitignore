@@ -1,5 +1,6 @@
 # IDE
 .idea
+.vscode
 
 # Node modules
 node_modules
@@ -10,7 +11,28 @@ node_modules
 
 # OS files
 .DS_Store
+Thumbs.db
 
-# Environment files (optional)
+# Environment files
 .env
 **/*.env
+
+# Build output
+dist
+build
+**/build
+**/dist
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+
+# Coverage
+coverage
+
+# Docker
+.dockerignore
